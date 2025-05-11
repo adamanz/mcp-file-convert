@@ -3,7 +3,7 @@
 startCommand:
   type: stdio
   configSchema:
-    # JSON Schema defining the configuration options for the MCP.
+    # JSON Schema defining the configuration options for the MCP
     type: object
     properties:
       allowedDirectories:
@@ -21,10 +21,10 @@ startCommand:
         default: 100
     additionalProperties: false
   commandFunction:
-    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio
     |-
-    (config) => ({
-      command: 'node',
+    (config) => ({ 
+      command: 'node', 
       args: ['dist/index.js'],
       env: {
         NODE_ENV: 'production',
@@ -38,3 +38,27 @@ startCommand:
     "timeoutSeconds": 900,
     "maxFileSizeMB": 200
   }
+
+# Information about the MCP server
+name: "File Converter"
+description: "Convert media files between different formats using ffmpeg"
+homepage: "https://github.com/yourusername/mcp-file-coverter"
+repository: "https://github.com/yourusername/mcp-file-coverter"
+author: "Your Name"
+license: "MIT"
+
+# Deployment configuration
+deployment:
+  # Build context
+  dockerfile: "./Dockerfile"
+  
+  # Optional: Resources for the deployment
+  resources:
+    # CPU and memory allocation (in millicores and MiB)
+    limits:
+      cpu: 1000
+      memory: 1024
+    # Minimum requested resources
+    requests:
+      cpu: 200
+      memory: 256
