@@ -8,10 +8,23 @@ import { execCommand, readCommandOutput, forceTerminateCommand, listCommandSessi
 import * as os from 'os';
 import * as fs from 'fs';
 
+// Load configuration from environment variables
+const config = {
+  allowedDirectories: process.env.ALLOWED_DIRECTORIES
+    ? JSON.parse(process.env.ALLOWED_DIRECTORIES)
+    : [],
+  timeoutSeconds: process.env.TIMEOUT_SECONDS
+    ? parseInt(process.env.TIMEOUT_SECONDS, 10)
+    : 600,
+  maxFileSizeMB: process.env.MAX_FILE_SIZE_MB
+    ? parseInt(process.env.MAX_FILE_SIZE_MB, 10)
+    : 100
+};
+
 // Create server instance
 const server = new McpServer({
   name: "file-converter",
-  description: "MCP server for converting files between different formats",
+  description: "MCP server for converting files between different formats using ffmpeg",
   version: "1.0.0",
   capabilities: {
     resources: {},
@@ -31,13 +44,18 @@ server.tool(
     additionalOptions: z.string().optional().describe("Additional ffmpeg options as a string"),
   },
   async ({ inputPath, outputPath, outputFormat, quality, additionalOptions }) => {
-    const result = await convertFile({
-      inputPath,
-      outputPath,
-      outputFormat,
-      quality,
-      additionalOptions,
-    });
+    const result = await convertFile(
+      {
+        inputPath,
+        outputPath,
+        outputFormat,
+        quality,
+        additionalOptions,
+      },
+      config.allowedDirectories,
+      config.maxFileSizeMB,
+      config.timeoutSeconds
+    );
 
     return {
       content: [
@@ -134,6 +152,39 @@ server.tool(
         },
       ],
     };
+  }
+);
+
+// Register tool for getting file information
+server.tool(
+  "get-file-info",
+  "Get detailed information about a media file using ffprobe",
+  {
+    filePath: z.string().describe("The absolute path to the media file"),
+  },
+  async ({ filePath }) => {
+    try {
+      const fileInfo = await getFileInfo(filePath, config.allowedDirectories);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(fileInfo, null, 2)
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error getting file info: ${error instanceof Error ? error.message : String(error)}`
+          },
+        ],
+        isError: true
+      };
+    }
   }
 );
 

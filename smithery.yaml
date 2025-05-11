@@ -1,17 +1,9 @@
-version: 1
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
 
-# Smithery.ai configuration for MCP File Converter
-# This file defines how to start and configure the server
-
-# Server type and configuration
-start:
-  # For HTTP transport
-  port: 8000
-  command: ["node", "dist/index.js"]
-  transport: http
-  
-  # Configuration schema for the server
+startCommand:
+  type: stdio
   configSchema:
+    # JSON Schema defining the configuration options for the MCP.
     type: object
     properties:
       allowedDirectories:
@@ -27,31 +19,22 @@ start:
         type: number
         description: "Maximum file size for conversion in MB"
         default: 100
-    required: []
     additionalProperties: false
-  
-  # Environment variables to pass to the server
-  env:
-    NODE_ENV: production
-    # Add any other environment variables your server needs
-
-# Metadata about the server for Smithery
-metadata:
-  name: "File Converter"
-  description: "MCP server for converting files between different formats using ffmpeg"
-  tags:
-    - "media"
-    - "conversion"
-    - "ffmpeg"
-    - "video"
-    - "audio"
-  author: "Your Name"
-  repository: "https://github.com/yourusername/mcp-file-converter"
-  license: "MIT"
-
-# Health check configuration
-healthCheck:
-  path: "/health"
-  intervalSeconds: 30
-  timeoutSeconds: 10
-  initialDelaySeconds: 5
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => ({
+      command: 'node',
+      args: ['dist/index.js'],
+      env: {
+        NODE_ENV: 'production',
+        ...(config.allowedDirectories ? { ALLOWED_DIRECTORIES: JSON.stringify(config.allowedDirectories) } : {}),
+        ...(config.timeoutSeconds ? { TIMEOUT_SECONDS: config.timeoutSeconds.toString() } : {}),
+        ...(config.maxFileSizeMB ? { MAX_FILE_SIZE_MB: config.maxFileSizeMB.toString() } : {})
+      }
+    })
+  exampleConfig: {
+    "allowedDirectories": ["/tmp", "/opt/media"],
+    "timeoutSeconds": 900,
+    "maxFileSizeMB": 200
+  }

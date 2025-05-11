@@ -19,10 +19,10 @@ export async function ensureFFmpegInstalled(): Promise<boolean> {
     return true;
   } catch (error) {
     console.log('ffmpeg is not installed. Attempting to install...');
-
+    
     try {
       let installCommand = '';
-
+      
       // Determine the operating system and choose appropriate installation command
       switch (os.platform()) {
         case 'darwin': // macOS
@@ -46,12 +46,12 @@ export async function ensureFFmpegInstalled(): Promise<boolean> {
         default:
           throw new Error(`Unsupported platform: ${os.platform()}`);
       }
-
+      
       // Execute installation command
       const { stdout, stderr } = await exec(installCommand);
       console.log('Installation output:', stdout);
       if (stderr) console.error('Installation errors:', stderr);
-
+      
       // Verify installation
       const verifyResult = await exec('ffmpeg -version');
       console.log('ffmpeg was installed successfully:', verifyResult.stdout.split('\n')[0]);
@@ -61,6 +61,27 @@ export async function ensureFFmpegInstalled(): Promise<boolean> {
       return false;
     }
   }
+}
+
+/**
+ * Check if a path is within allowed directories
+ */
+export function isPathAllowed(filePath: string, allowedDirectories: string[]): boolean {
+  // If no allowed directories are configured, allow all paths
+  if (!allowedDirectories || allowedDirectories.length === 0) {
+    return true;
+  }
+
+  const absolutePath = path.resolve(filePath);
+  return allowedDirectories.some(dir => absolutePath.startsWith(path.resolve(dir)));
+}
+
+/**
+ * Get the size of a file in MB
+ */
+export function getFileSizeMB(filePath: string): number {
+  const stats = fs.statSync(filePath);
+  return stats.size / (1024 * 1024); // Convert bytes to MB
 }
 
 // Quality presets for different output formats
@@ -105,7 +126,12 @@ const qualityPresets: Record<string, Record<string, string>> = {
 /**
  * Convert a file from one format to another using ffmpeg
  */
-export async function convertFile(params: ConversionParams): Promise<ConversionResult> {
+export async function convertFile(
+  params: ConversionParams, 
+  allowedDirectories: string[] = [], 
+  maxFileSizeMB: number = 100,
+  timeoutSeconds: number = 600
+): Promise<ConversionResult> {
   try {
     // Ensure ffmpeg is installed
     const ffmpegInstalled = await ensureFFmpegInstalled();
@@ -123,6 +149,34 @@ export async function convertFile(params: ConversionParams): Promise<ConversionR
         success: false,
         output: '',
         error: `Input file does not exist: ${params.inputPath}`
+      };
+    }
+    
+    // Check if input path is allowed
+    if (!isPathAllowed(params.inputPath, allowedDirectories)) {
+      return {
+        success: false,
+        output: '',
+        error: `Access to input path ${params.inputPath} is not allowed. Allowed directories: ${allowedDirectories.join(', ') || 'none'}`
+      };
+    }
+    
+    // Check if output path is allowed
+    if (!isPathAllowed(params.outputPath, allowedDirectories)) {
+      return {
+        success: false,
+        output: '',
+        error: `Access to output path ${params.outputPath} is not allowed. Allowed directories: ${allowedDirectories.join(', ') || 'none'}`
+      };
+    }
+    
+    // Check file size
+    const fileSizeMB = getFileSizeMB(params.inputPath);
+    if (fileSizeMB > maxFileSizeMB) {
+      return {
+        success: false,
+        output: '',
+        error: `Input file size (${fileSizeMB.toFixed(2)} MB) exceeds maximum allowed size (${maxFileSizeMB} MB)`
       };
     }
 
@@ -149,7 +203,7 @@ export async function convertFile(params: ConversionParams): Promise<ConversionR
     // Execute the command
     const result = await execCommand({
       command: ffmpegCommand,
-      timeout_ms: 600000 // 10 minutes timeout for conversions
+      timeout_ms: timeoutSeconds * 1000 // Convert seconds to milliseconds
     });
 
     // Parse the PID from the output
@@ -182,9 +236,17 @@ export async function convertFile(params: ConversionParams): Promise<ConversionR
 /**
  * Get information about a media file using ffprobe
  */
-export async function getFileInfo(filePath: string): Promise<any> {
+export async function getFileInfo(
+  filePath: string, 
+  allowedDirectories: string[] = []
+): Promise<any> {
   if (!fs.existsSync(filePath)) {
     throw new Error(`File does not exist: ${filePath}`);
+  }
+  
+  // Check if file path is allowed
+  if (!isPathAllowed(filePath, allowedDirectories)) {
+    throw new Error(`Access to file path ${filePath} is not allowed. Allowed directories: ${allowedDirectories.join(', ') || 'none'}`);
   }
 
   const command = `ffprobe -v quiet -print_format json -show_format -show_streams "${filePath}"`;

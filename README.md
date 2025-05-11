@@ -71,6 +71,13 @@ Terminates a running command.
 
 Lists all active command sessions.
 
+### `get-file-info`
+
+Get detailed information about a media file using ffprobe.
+
+**Parameters:**
+- `filePath` (string): The absolute path to the media file
+
 ### `check-dependencies`
 
 Checks if required dependencies (ffmpeg) are installed and installs them if missing.
