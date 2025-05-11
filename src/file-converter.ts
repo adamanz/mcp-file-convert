@@ -2,11 +2,11 @@ import { execCommand } from './command-executor';
 import { ConversionParams, ConversionResult } from './types';
 import * as path from 'path';
 import * as fs from 'fs';
-import { spawn } from 'child_process';
+import { spawn, exec as execCallback } from 'child_process';
 import { promisify } from 'util';
 import * as os from 'os';
 
-const exec = promisify(require('child_process').exec);
+const exec = promisify(execCallback);
 
 /**
  * Check if ffmpeg is installed and install it if necessary

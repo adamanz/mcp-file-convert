@@ -3,7 +3,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { convertFile, ensureFFmpegInstalled } from "./file-converter.js";
+import { convertFile, ensureFFmpegInstalled, getFileInfo } from "./file-converter.js";
 import { execCommand, readCommandOutput, forceTerminateCommand, listCommandSessions } from "./command-executor.js";
 import * as os from 'os';
 import * as fs from 'fs';
