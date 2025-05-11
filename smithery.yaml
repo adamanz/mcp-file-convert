@@ -1,0 +1,57 @@
+version: 1
+
+# Smithery.ai configuration for MCP File Converter
+# This file defines how to start and configure the server
+
+# Server type and configuration
+start:
+  # For HTTP transport
+  port: 8000
+  command: ["node", "dist/index.js"]
+  transport: http
+  
+  # Configuration schema for the server
+  configSchema:
+    type: object
+    properties:
+      allowedDirectories:
+        type: array
+        description: "List of directories where file conversion is allowed"
+        items:
+          type: string
+      timeoutSeconds:
+        type: number
+        description: "Maximum timeout for conversion operations in seconds"
+        default: 600
+      maxFileSizeMB:
+        type: number
+        description: "Maximum file size for conversion in MB"
+        default: 100
+    required: []
+    additionalProperties: false
+  
+  # Environment variables to pass to the server
+  env:
+    NODE_ENV: production
+    # Add any other environment variables your server needs
+
+# Metadata about the server for Smithery
+metadata:
+  name: "File Converter"
+  description: "MCP server for converting files between different formats using ffmpeg"
+  tags:
+    - "media"
+    - "conversion"
+    - "ffmpeg"
+    - "video"
+    - "audio"
+  author: "Your Name"
+  repository: "https://github.com/yourusername/mcp-file-converter"
+  license: "MIT"
+
+# Health check configuration
+healthCheck:
+  path: "/health"
+  intervalSeconds: 30
+  timeoutSeconds: 10
+  initialDelaySeconds: 5
